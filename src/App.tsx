@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './data/db';
 import { ensureSeed } from './data/ensureSeed';
+import { getParams, installChangeTracking, onSyncStatus, syncNow } from './data/cloud';
 import { setToastHandler } from './data/repo';
 import { AcademySheet, BranchesSheet, LessonSheet, SeedReportSheet, StatCardsSheet, StateSheet } from './ui/Campaign';
 import { CreationSheet } from './ui/Creation';
@@ -80,6 +81,22 @@ export function App() {
   const [sheets, setSheets] = useState<SheetSpec[]>([]);
   const [presenter, setPresenter] = useState(!!getLocal().presenter);
   const [locked, setLocked] = useState(lockConfigured() && !getLocal().presenter);
+  const [lockNotice, setLockNotice] = useState('');
+  // A device that has never been unlocked asks the server whether a shared passphrase exists
+  // before showing anything (at most a few seconds; offline it goes straight on).
+  const [booted, setBooted] = useState(lockConfigured());
+  useEffect(() => {
+    installChangeTracking();
+    void getParams(3000).then((p) => {
+      if (p?.configured && !getLocal().presenter && !booted) setLocked(true);
+      setBooted(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Another device changed the passphrase: ask for it again.
+  useEffect(() => onSyncStatus((st) => {
+    if (st.relock && lockConfigured() && !getLocal().presenter) { setLockNotice(st.message ?? ''); setSheets([]); setLocked(true); }
+  }), []);
 
   // Re-lock the DM view after 5 minutes in the background (phone in a pocket, app switched).
   useEffect(() => {
@@ -103,6 +120,19 @@ export function App() {
   }, []);
   useEffect(runSeed, [runSeed]);
 
+  // Sync with the server once the campaign is ready, whenever the app returns to the front or the
+  // device comes back online, and every minute while it is open.
+  useEffect(() => {
+    if (seedState !== 'ready' || locked) return;
+    void syncNow('ready');
+    const onVis = () => { if (!document.hidden) void syncNow('visible'); };
+    const onOnline = () => void syncNow('online');
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('online', onOnline);
+    const timer = setInterval(() => { if (!document.hidden) void syncNow('timer'); }, 60_000);
+    return () => { document.removeEventListener('visibilitychange', onVis); window.removeEventListener('online', onOnline); clearInterval(timer); };
+  }, [seedState, locked]);
+
   useEffect(() => {
     setToastHandler((message, undo) => {
       clearTimeout(timer.current);
@@ -119,7 +149,8 @@ export function App() {
     enterPresenter,
   }), [enterPresenter]);
 
-  if (locked) return <LockScreen onUnlock={() => setLocked(false)} onPresenter={() => { setLocal({ presenter: true }); setPresenter(true); setLocked(false); }} />;
+  if (!booted) return <div className="app"><div className="fullscreen"><p className="muted">Opening…</p></div></div>;
+  if (locked) return <LockScreen notice={lockNotice} onUnlock={() => { setLockNotice(''); setLocked(false); }} onPresenter={() => { setLocal({ presenter: true }); setPresenter(true); setLocked(false); }} />;
   if (seedState !== 'ready' && seedState !== 'pending') {
     return (
       <div className="app"><div className="fullscreen">

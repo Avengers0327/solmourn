@@ -13,6 +13,7 @@ import { Chip, ConfirmBtn, Empty, Seg, Sheet, TextField, VisChip, pretty } from 
 import { useCampaignData, type FullData } from './share';
 import { fmtTime, getLocal, setLocal, useNav, useRows, type SheetSpec } from './state';
 import { PassphraseSettings } from './Lock';
+import { SyncSettings } from './Sync';
 
 export function Library() {
   const nav = useNav();
@@ -268,11 +269,12 @@ export function SettingsSheet() {
   return (
     <Sheet title="Settings">
       <PassphraseSettings />
+      <SyncSettings />
       <div className="card">
         <TextField label="Time zone for timestamps (blank = this device)" value={local.timeZone ?? ''} placeholder="e.g. America/New_York" onSave={(v) => save({ timeZone: v.trim() || undefined })} />
         <p className="small muted">Times are stored in UTC and shown in this zone. Now: {fmtTime(new Date().toISOString())}</p>
       </div>
-      <div className="card"><div className="label">Privacy</div><p className="small">No accounts, no analytics, no network calls. Nothing is sent to any AI service. The app sends no notifications.</p></div>
+      <div className="card"><div className="label">Privacy</div><p className="small">No accounts and no analytics. On the deployed site the campaign syncs to your own Cloudflare Worker and nowhere else. Nothing is sent to an AI service unless you give it the read-only link. The app sends no notifications.</p></div>
     </Sheet>
   );
 }
@@ -284,14 +286,14 @@ const STATUS: [string, string[]][] = [
     'Clue and revelation tracker with two-tap “mark found”', 'Party sheets, data-driven class resources, short and long rests',
     'Pattern directory (SRD 5.1 text), Patternbook legality, overcasting calculator', 'Character creation walkthrough with validation', 'DM Academy lessons linked from the cockpit', 'Branch choices and campaign state trackers', 'Initiative tracker and dice roller',
     'Group technique tracker (when a campaign pack provides its rules)', 'Player-safe exports with preview and spoiler scan; Presenter mode',
-    'Canon decision board and consistency checks', 'Full backup and restore via the share sheet',
+    'Canon decision board and consistency checks', 'Full backup and restore via the share sheet', 'Sync between your devices and a read-only DM link for ChatGPT (deployed site only)',
   ]],
   ['Placeholder', [
     'All 15 session prep cards, clues, branches and stat cards are WORKING drafts for you to edit', 'PHB-only spells are listed by name without rules text; other 2014-era books are not inventoried',
     'Discipline mapping, exclusions and 12 original Patterns await your approval', 'Player-safe wording is a draft for you to edit', 'Hit Dice are not tracked',
   ]],
   ['Deferred', [
-    'Native iOS build (this is an installable web app)', 'PDF export, camera attachments, portraits, widgets', 'Cloud sync and player accounts', 'Semantic search and any AI assistance', 'Face ID (a passcode is used instead)',
+    'Native iOS build (this is an installable web app)', 'PDF export, camera attachments, portraits, widgets', 'Player accounts (sync is for one DM)', 'Semantic search and any AI assistance', 'Face ID (a passphrase is used instead)',
   ]],
 ];
 export function StatusSheet() {

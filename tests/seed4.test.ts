@@ -338,9 +338,13 @@ describe('DM-only Patterns and spoiler isolation', () => {
 
 describe('the directory works offline', () => {
   const walk = (dir: string): string[] => readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? walk(join(dir, f)) : [join(dir, f)]));
-  it('is bundled static data: the app source makes no network requests at all', () => {
-    const files = walk('src').filter((f) => /\.(ts|tsx)$/.test(f));
+  it('is bundled static data: the only network code is sync, to this site\'s own /api', () => {
+    const files = walk('src').filter((f) => /\.(ts|tsx)$/.test(f) && !/[\\/]data[\\/]cloud\.ts$/.test(f));
     for (const f of files) expect(readFileSync(f, 'utf8'), f).not.toMatch(/\bfetch\(|XMLHttpRequest|WebSocket\(|navigator\.sendBeacon|EventSource\(/);
+    const cloud = readFileSync('src/data/cloud.ts', 'utf8');
+    expect(cloud.match(/\bfetch\(/g)).toHaveLength(1);
+    expect(cloud).toContain('fetch(`/api/${path}`');
+    expect(cloud).not.toMatch(/https?:\/\//);
     expect(readdirSync('src/content')).toEqual(expect.arrayContaining(['spells.index.json', 'spells.srd.json']));
   });
 });

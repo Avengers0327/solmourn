@@ -1,6 +1,6 @@
 # Solmourn Companion
 
-An offline, phone-first DM cockpit for **Solmourn: The Dying Light**, a 15-session branching campaign. Version 0.4 (canon seed v4).
+An offline, phone-first DM cockpit for **Solmourn: The Dying Light**, a 15-session branching campaign. Version 0.5 (canon seed v4).
 
 > **What this is, plainly:** an installable web app (PWA), not a native iOS app. You add it to your iPhone Home Screen from Safari; it then opens full-screen and works with no connection.
 
@@ -11,7 +11,7 @@ Canon authority: [content/SOLMOURN_CANONICAL_DM_STORY_BIBLE.md](content/SOLMOURN
 | Command | What it does |
 |---|---|
 | `npm run dev` | Runs the app at http://localhost:5173 |
-| `npm test` | 187 automated tests: canon checklist, spoiler safety, seed upgrades, rules, spells, species, passphrase, character creation |
+| `npm test` | 199 automated tests (sync, shared passphrase and the ChatGPT feed included): canon checklist, spoiler safety, seed upgrades, rules, spells, species, passphrase, character creation |
 | `npm run build` | Type-checks, builds `dist/`, and fails if spoilers appear outside the DM chunk |
 | `npm run docs` | Regenerates the Markdown in `docs/` from the same records the app seeds |
 | `npm run spells -- <file>` | Rebuilds the SRD spell text from a raw SRD dump |
@@ -56,8 +56,8 @@ There is no default passphrase. Until you set one (Library → Settings, or the 
 
 - **Asked for:** when the app opens, when leaving Presenter mode, after 5 minutes in the background, and before backup, restore, reset, or changing or removing the passphrase. The 🔒 button locks the DM view at once.
 - **Player view needs no passphrase:** the lock screen offers "Open player view instead", which is Presenter mode.
-- **Storage:** the passphrase (8+ characters) is stored only as a salted PBKDF2 hash, in this browser's local storage, outside the campaign database. It is never in backups, exports, search or player screens.
-- **Forgot it:** use the one-time recovery code shown when you set it. If that is lost too, "Erase and reset" clears the device; then restore your latest backup.
+- **Storage:** the passphrase (8+ characters) is never stored or sent as typed. Each device keeps a salted PBKDF2 hash in local storage (so it can unlock offline). On the deployed site the server keeps only a SHA-256 of a PBKDF2-stretched key, and limits wrong guesses to 10 per 15 minutes. It is never in backups, exports, search or player screens.
+- **Forgot it:** use the one-time recovery code shown when you set it (on the deployed site, see "Forgot the passphrase" above). Without a server, if the code is lost too, "Erase and reset" clears the device; then restore your latest backup.
 - **Old installs:** an old 4-digit passcode is accepted once, then must be replaced with a passphrase.
 
 **What it does not do:** it is a lock on the app, not encryption. The campaign data in the browser's storage and in backup files is not encrypted, and the DM content is still downloadable from the hosted site (see above).
@@ -72,12 +72,31 @@ Any official D&D species may be played (Canon Amendment 001). The builder offers
 
 One species rules package per character; mixed heritage is a description only. Species innate features (breath weapon, infernal legacy, hand-entered ones) are their own limited-use resources and never use or grant Resonance Points, Patterns or Amplification. Characters created before the amendment are read as human and stay valid unchanged.
 
-## Putting it on your iPhone
+## Deploying (Cloudflare): one site, one passphrase, every device
 
-1. `npm run build`, then upload the contents of `dist/` to a static HTTPS host (Netlify drop, GitHub Pages from a private repo, Cloudflare Pages).
-2. On the iPhone open the address in **Safari** → Share → **Add to Home Screen**. Always open it from the Home Screen icon.
-3. Library → Settings → set the DM passphrase and save the recovery code.
-4. **Verify offline before session 1:** Airplane Mode on, force-quit, reopen, add a note, advance a clock, roll dice.
+Deployed on Cloudflare Workers, the app syncs: your phone, your PC, the Home Screen app and a browser tab all show **the same campaign** and use **the same passphrase**. `wrangler.jsonc` holds the settings.
+
+**Cloudflare settings (Workers → solmourn → Settings → Build):** build command `npm run build`, deploy command `npx wrangler deploy`. Pushing to GitHub redeploys. Nothing else to configure.
+
+**First time:**
+1. Open the site on any device (phone: in **Safari** → Share → **Add to Home Screen**).
+2. Library → Settings → set the DM passphrase and save the recovery code. That passphrase now unlocks every device. (If a device already had its own passphrase, the first one to unlock online becomes the shared one.)
+3. On each other device, open the site and unlock with the same passphrase: it downloads the campaign.
+4. **Verify offline before session 1:** Airplane Mode on, force-quit, reopen, add a note, advance a clock, roll dice. Changes upload when the phone is back online.
+
+**How sync behaves:** changes upload a few seconds after you make them; the app downloads the latest when it opens, comes back to the front, comes back online, and every minute while open. If two devices both change things before syncing, the later upload wins and the other device's version is kept in Library → Settings → Saved copies (save it as a file and restore it if needed). Nothing is merged field by field.
+
+**Changing the passphrase** on one device signs the others out; they unlock with the new one next time they are online. A device that is offline keeps accepting the passphrase it last saw until it reconnects.
+
+**Forgot the passphrase:** "Forgot the passphrase?" on the lock screen with your recovery code. Lost that too: in Cloudflare add a **Secret** named `RESET_PASSPHRASE` (any value), then on the lock screen → Forgot → "Lost the recovery code too?" enter that value. This clears the passphrase only; the campaign is kept.
+
+**Local preview** (`npm run dev` / `npm run preview`) has no server, so it does not sync and keeps a separate copy on that computer. `npx wrangler dev` runs the full site, sync included, locally.
+
+## ChatGPT (read-only DM link)
+
+Library → Settings → **Read-only link for ChatGPT** gives a private link like `https://…/api/dm/<key>`. Paste it into a ChatGPT chat and ask it to open it. It serves the full DM view as plain-text pages: an index, "where the campaign stands", each session (prep, scenes, read-alouds, choices, clues, table notes), mysteries, people, places, world and canon, party, table log, stat cards and lessons, and the source documents. It shows the state as of the last sync and cannot change anything.
+
+Anyone with the link can read every spoiler: don't share it with players. **Make a new link** switches the old one off. The pages carry `noindex`, so search engines are told not to list them. Whether ChatGPT can open a given link depends on ChatGPT's own browsing; I could not test that from here.
 
 ## Upgrades never overwrite your campaign
 
@@ -94,7 +113,7 @@ To change the campaign content: edit `src/seed/*.ts` (or the bible), bump `SEED_
 ## Backups and a lost or replaced phone
 
 - Library → Backup & restore → **Export full backup** → *Save to Files*. Do this after every session. The file is named `solmourn-DM-ONLY-backup-…` and contains every secret.
-- New phone: install as above, then Library → Backup & restore → choose the backup → **Replace everything with this file**.
+- New phone: on the deployed site just open it and unlock: sync downloads everything. Without sync: install, then Library → Backup & restore → choose the backup → **Replace everything with this file**.
 - Forgot the passcode: the lock screen offers "Erase and reset"; then restore a backup.
 
 ## How spoiler safety is enforced
@@ -126,7 +145,7 @@ To change the campaign content: edit `src/seed/*.ts` (or the bible), bump `SEED_
 
 ## Status
 
-**Verified here:** 187 automated tests; production build and bundle check; manual passes in a desktop browser at 375×812. The passes covered fresh preload, the new screens, character creation (including a dragonborn and a hand-entered plasmoid), Presenter mode and its search, reload persistence, a single seed run, and the full passphrase cycle (set, wrong entry, unlock, recovery code, gated backup, Presenter exit, legacy-passcode upgrade).
+**Verified here:** 199 automated tests; production build and bundle check; manual passes in a desktop browser at 375×812. The passes covered fresh preload, the new screens, character creation (including a dragonborn and a hand-entered plasmoid), Presenter mode and its search, reload persistence, a single seed run, and the full passphrase cycle (set, wrong entry, unlock, recovery code, gated backup, Presenter exit, legacy-passcode upgrade).
 
 **Not verified:** nothing has been run on a physical iPhone; the passphrase screens and Face ID-free lock have only been exercised in a desktop browser. Installed-PWA offline behaviour and the iOS share sheet are untested on hardware. The upgrade of an old eight-session install is covered by automated tests against a simulated database, not by a real upgraded device.
 

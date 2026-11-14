@@ -6,7 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 // (GitHub Pages project sites, Netlify, a NAS, ...).
 export default defineConfig({
   base: './',
-  define: { __APP_VERSION__: JSON.stringify('0.3.0') },
+  define: { __APP_VERSION__: JSON.stringify('0.5.0') },
   plugins: [
     react(),
     VitePWA({
@@ -28,7 +28,7 @@ export default defineConfig({
           { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
-      workbox: { globPatterns: ['**/*.{js,css,html,png,svg,woff2}'] },
+      workbox: { globPatterns: ['**/*.{js,css,html,png,svg,woff2}'], navigateFallbackDenylist: [/^\/api\//] },
     }),
   ],
   server: { port: 5173 },

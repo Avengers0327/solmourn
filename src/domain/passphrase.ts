@@ -14,14 +14,14 @@ export interface LockRecord {
   setAt: string;
 }
 export const MIN_LENGTH = 8;
-const ITERATIONS = 210_000;
+export const ITERATIONS = 210_000;
 const RECOVERY_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I
 
-const hex = (b: ArrayBuffer | Uint8Array) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
+export const hex = (b: ArrayBuffer | Uint8Array) => [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
 const unhex = (s: string) => new Uint8Array(s.match(/../g)!.map((h) => parseInt(h, 16)));
-const randomBytes = (n: number) => crypto.getRandomValues(new Uint8Array(n));
+export const randomBytes = (n: number) => crypto.getRandomValues(new Uint8Array(n));
 
-async function derive(secret: string, saltHex: string, iterations: number): Promise<string> {
+export async function derive(secret: string, saltHex: string, iterations: number): Promise<string> {
   const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret.normalize('NFKC')), 'PBKDF2', false, ['deriveBits']);
   const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: unhex(saltHex), iterations }, key, 256);
   return hex(bits);
@@ -46,10 +46,9 @@ export function makeRecoveryCode(): string {
 }
 
 /** Create a lock record. Returns it with the one-time recovery code to show the DM. */
-export async function createLock(passphrase: string, iterations = ITERATIONS): Promise<{ record: LockRecord; recoveryCode: string }> {
+export async function createLock(passphrase: string, iterations = ITERATIONS, recoveryCode = makeRecoveryCode()): Promise<{ record: LockRecord; recoveryCode: string }> {
   const problem = validatePassphrase(passphrase);
   if (problem) throw new Error(problem);
-  const recoveryCode = makeRecoveryCode();
   const salt = hex(randomBytes(16));
   const recoverySalt = hex(randomBytes(16));
   return {

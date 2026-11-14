@@ -2,6 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     { "name": "solmourn-dev", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 5173 },
-    { "name": "solmourn-preview", "runtimeExecutable": "npm", "runtimeArgs": ["run", "preview", "--", "--port", "4173", "--strictPort"], "port": 4173 }
+    { "name": "solmourn-preview", "runtimeExecutable": "npm", "runtimeArgs": ["run", "preview", "--", "--port", "4173", "--strictPort"], "port": 4173 },
+    { "name": "solmourn-cloud", "runtimeExecutable": "npx", "runtimeArgs": ["wrangler@4", "dev", "--port", "8787", "--persist-to", ".wrangler/state-local"], "port": 8787 }
   ]
 }
