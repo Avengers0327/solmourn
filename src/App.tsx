@@ -188,6 +188,9 @@ export function App() {
               <span className="ico" aria-hidden>{t.icon}</span>{t.label}
             </button>
           ))}
+          <button aria-current={top?.type === 'settings' ? 'page' : undefined} onClick={() => { setSheets([]); nav.open({ type: 'settings' }); }}>
+            <span className="ico" aria-hidden>⚙</span>Settings
+          </button>
         </nav>
         {top && <div key={sheets.length + JSON.stringify(top)}>{renderSheet(top)}</div>}
         {toast && (
