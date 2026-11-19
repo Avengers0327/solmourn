@@ -415,7 +415,7 @@ describe('upgrading a seed v3 save to v4', () => {
 
     const r = await applySeed(seedV2());
     expect(r.fromVersion).toBe(3);
-    expect(r.version).toBe(4);
+    expect(r.version).toBe(5);
     // resolved decisions
     for (const id of ['dec-missing-workers', 'dec-opening-station', 'dec-sundering-term']) expect((await db.canonDecisions.get(id))!.deletedAt, id).toBeTruthy();
     for (const id of ['dec-sundering-public', 'dec-exchange-17', 'dec-seven-workers']) expect(await db.canonDecisions.get(id), id).toMatchObject({ status: 'LOCKED' });
@@ -440,7 +440,7 @@ describe('upgrading a seed v3 save to v4', () => {
     const snap = JSON.stringify([await db.lore.toArray(), await db.clues.toArray(), await db.branches.toArray()]);
     await applySeed(seedV2());
     expect(JSON.stringify([await db.lore.toArray(), await db.clues.toArray(), await db.branches.toArray()])).toBe(snap);
-    expect((await getSeedReport())!.version).toBe(4);
+    expect((await getSeedReport())!.version).toBe(5);
   });
   it('an interrupted v3 → v4 upgrade rolls back completely', async () => {
     await applySeed(asV3());
@@ -449,6 +449,6 @@ describe('upgrading a seed v3 save to v4', () => {
     expect(JSON.stringify([await db.canonDecisions.toArray(), await db.locations.toArray(), await db.npcs.toArray()])).toBe(before);
     expect((await getSeedReport())!.version).toBe(3);
     await applySeed(seedV2());
-    expect((await getSeedReport())!.version).toBe(4);
+    expect((await getSeedReport())!.version).toBe(5);
   });
 });

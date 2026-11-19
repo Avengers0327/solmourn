@@ -22,7 +22,7 @@ beforeEach(async () => { await wipeAll(); });
 describe('fresh install (no import step)', () => {
   it('seeds the whole campaign and opens at Session 1, unstarted', async () => {
     const r = await applySeed(seedV2());
-    expect(r).toMatchObject({ fromVersion: 0, version: 4, updated: 0, retired: 0, collisions: [] });
+    expect(r).toMatchObject({ fromVersion: 0, version: 5, updated: 0, retired: 0, collisions: [] });
     expect(await db.sessions.count()).toBe(15);
     const c = await db.campaigns.get('solmourn');
     expect(c!.title).toBe('Solmourn: The Dying Light');
@@ -32,7 +32,7 @@ describe('fresh install (no import step)', () => {
     expect(await db.branches.count()).toBeGreaterThanOrEqual(15);
     expect(await db.statCards.count()).toBeGreaterThanOrEqual(15);
     expect(await db.pcs.count()).toBe(0);
-    expect(await getSeedVersion()).toBe(4);
+    expect(await getSeedVersion()).toBe(5);
   });
   it('relaunch is a no-op: no duplicates, nothing rewritten', async () => {
     await applySeed(seedV2());
@@ -74,7 +74,7 @@ describe('upgrade of an untouched eight-session install', () => {
     expect(((await db.canonRules.get('rule-cinders')) as { deletedAt?: string }).deletedAt).toBeTruthy();
     expect((await db.canonDecisions.get('dec-collective-name'))!.deletedAt).toBeTruthy();
     expect(r.retired).toBeGreaterThan(40);
-    expect(await liveCount('npcs')).toBe(18);
+    expect(await liveCount('npcs')).toBe(24);
     // no duplicate people
     const names = (await db.npcs.toArray()).filter((n) => !n.deletedAt).map((n) => n.name);
     expect(new Set(names).size).toBe(names.length);
@@ -198,7 +198,7 @@ describe('interrupted migration', () => {
     expect(await getSeedVersion()).toBe(0);
     expect(await db.sessions.count()).toBe(8);
     const r = await applySeed(seedV2());
-    expect(r.version).toBe(4);
+    expect(r.version).toBe(5);
     expect(await db.sessions.count()).toBe(15);
     expect((await db.npcs.get('npc-mara'))!.wants).toBe('MY EDIT');
   });
@@ -216,7 +216,7 @@ describe('edits made after the upgrade survive the next seed version', () => {
     await update<Branch>('branches', 'br-6-decree', { chosenOptionId: 'covert', notesMd: 'They bypassed the exchanger.' });
     await db.lessons.update('les-clocks', { done: true });
     const v3 = structuredClone(seedV2());
-    v3.version = 5;
+    v3.version = 6;
     for (const n of v3.tables.npcs!) n.role = `${n.role} (v3)`;
     for (const b of v3.tables.branches!) b.title = `${b.title} (v3)`;
     for (const l of v3.tables.lessons!) l.title = `${l.title} (v3)`;
@@ -256,7 +256,7 @@ describe('backup and restore', () => {
     expect((await db.clocks.get('clk-unrest'))!.value).toBe(2);
     expect((await db.clues.get('clu-conduit'))!).toMatchObject({ status: 'FOUND', visibility: 'REVEALED' });
     expect((await db.branches.get('br-1-rescue'))!.chosenOptionId).toBe('lift');
-    expect(await getSeedVersion()).toBe(4);
+    expect(await getSeedVersion()).toBe(5);
   });
   it('restoring an OLD eight-session backup then upgrades it without losing edits', async () => {
     await installV1();

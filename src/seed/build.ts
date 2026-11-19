@@ -8,6 +8,7 @@ import { SEED_VERSION } from '../seedVersion';
 import { lessons, statCards } from './academy';
 import baselineV1 from './baselineV1.json';
 import { branches, clues, revelations, scenes, sessions } from './campaign';
+import { calendarLore, workerNpcs } from './chronology';
 import { AMENDMENT_FILE, BIBLE_FILE, amendmentToLore, base, bibleToLore } from './helpers';
 import { authoredLore, canonDecisions, canonRules, clocks, locations, npcs, timeline, trialConfig } from './world';
 
@@ -26,7 +27,7 @@ export function buildSeedFrom(docs: { bible: string; playerGuide: string; amendm
     legacyBaseline: baselineV1 as Record<string, string>,
     meta: [{ key: 'trialConfig', value: trialConfig }],
     tables: {
-      campaigns: [campaign], sessions, scenes, npcs, locations, lore: [...bibleToLore(docs.bible), ...amendmentToLore(docs.amendment), ...authoredLore], revelations, clues, clocks,
+      campaigns: [campaign], sessions, scenes, npcs: [...npcs, ...workerNpcs], locations, lore: [...bibleToLore(docs.bible), ...amendmentToLore(docs.amendment), ...authoredLore, calendarLore], revelations, clues, clocks,
       canonDecisions, timeline, docs: docsOut, canonRules, branches, lessons, statCards,
     },
   };

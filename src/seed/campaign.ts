@@ -3,6 +3,7 @@
 // for the DM to edit, never canon. Session numbers are pacing guides, not rails.
 import type { Branch, BranchOption, Clue, Revelation, Scene, Session } from '../domain/types';
 import { AUTHORED, OWNER, base, bib } from './helpers';
+import { mergeScenes, timelineBlock } from './chronology';
 
 interface SessionDef {
   title: string; arc: string; levels: string; question: string; anchor: string; safeguard: string;
@@ -274,13 +275,13 @@ export const sessions: Session[] = S.map((s, i) => ({
   ...base(`ses-${i + 1}`, `${bib('10.2, 10.3')}; ${AUTHORED}`, 'WORKING'),
   index: i + 1, title: s.title, arc: `Arc ${s.arc}`, levelRange: s.levels, status: 'PLANNED', visibility: 'DM_ONLY',
   questionMd: `${s.question}\n\n**Anchor from the bible:** ${s.anchor}\n\n**Continuity safeguard:** ${s.safeguard}`,
-  prepMd: `> WORKING prep card. Titles, scenes, encounters and clue placement are suggestions to edit; only the cited anchor is canon. Arc name and level range are from the worldbuilding conversation, not the bible.\n\n${s.prep}`,
+  prepMd: `> WORKING prep card. Titles, scenes, encounters and clue placement are suggestions to edit; only the cited anchor is canon. Arc name and level range are from the worldbuilding conversation, not the bible.\n\n${timelineBlock(i)}\n\n${s.prep}`,
   dmNotesMd: '', playerRecapMd: '', currentSceneId: i === 0 ? 'scn-1-1' : undefined,
 }));
 
-export const scenes: Scene[] = S.flatMap((s, i) => s.scenes.map(([title, descriptionMd, readAloudMd], j): Scene => ({
-  ...base(`scn-${i + 1}-${j + 1}`, AUTHORED, 'WORKING'), sessionId: `ses-${i + 1}`, title, descriptionMd, readAloudMd: readAloudMd ?? '', sequence: j + 1,
-  status: i === 0 && j === 0 ? 'ACTIVE' : 'PENDING', visibility: 'DM_ONLY',
+export const scenes: Scene[] = S.flatMap((s, i) => mergeScenes(i, s.scenes).map((m, j): Scene => ({
+  ...base(m.id, AUTHORED, 'WORKING'), sessionId: `ses-${i + 1}`, title: m.title, descriptionMd: m.descriptionMd, readAloudMd: m.readAloudMd, sequence: j + 1,
+  status: m.id === 'scn-1-1' ? 'ACTIVE' : 'PENDING', visibility: 'DM_ONLY',
 })));
 
 // ---------------- Mysteries ----------------
